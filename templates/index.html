@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <title>Consulta del Censo de México - Prototipo 6</title>
+
+    <!-- DaisyUI + Tailwind CDN :contentReference[oaicite:0]{index=0} -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Chart.js para el gráfico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="min-h-screen bg-base-200">
+<div class="min-h-screen flex flex-col">
+
+    <!-- NAVBAR -->
+    <div class="navbar bg-base-100 shadow-md">
+        <div class="flex-1">
+            <span class="btn btn-ghost normal-case text-xl">
+                Censo de México · Prototipo 6
+            </span>
+        </div>
+        <div class="flex-none">
+            <span class="badge badge-outline">Calidad de Software BDD</span>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-1 container mx-auto px-4 py-6">
+
+        <!-- HERO / DESCRIPCIÓN -->
+        <section class="mb-6">
+            <div class="hero bg-base-100 rounded-box shadow">
+                <div class="hero-content flex-col lg:flex-row">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">
+                            Consulta interactiva del Censo de México
+                        </h1>
+                        <p class="text-sm opacity-80">
+                            Prototipo 6: Interfaz para apoyar la toma de decisiones comerciales
+                            mediante la consulta de población por estado, municipio y rango de edad.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- CARD: Consulta por Estado -->
+            <section>
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title">Consulta por estado</h2>
+                        <p class="text-sm opacity-80">
+                            Selecciona una entidad federativa para obtener la población total.
+                        </p>
+
+                        <form method="post" class="space-y-4">
+                            <input type="hidden" name="tipo_consulta" value="estado" />
+
+                            <div class="form-control">
+                                <label for="estado" class="label">
+                                    <span class="label-text">Estado</span>
+                                </label>
+                                <select name="estado" id="estado" class="select select-bordered w-full">
+                                    {% for est in lista_estados %}
+                                        <option value="{{ est }}">{{ est }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-control mt-4">
+                                <button type="submit" class="btn btn-primary w-full">
+                                    Consultar población total
+                                </button>
+                            </div>
+                        </form>
+
+                        {% if resultado_estado %}
+                            <div class="divider my-4">Resultados</div>
+
+                            <div class="stats shadow w-full">
+                                <div class="stat">
+                                    <div class="stat-title">Estado</div>
+                                    <div class="stat-value text-primary">
+                                        {{ resultado_estado.estado }}
+                                    </div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-title">Población total</div>
+                                    <div class="stat-value">
+                                        {{ "{:,}".format(resultado_estado.poblacion_total) }}
+                                    </div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-title">Año del censo</div>
+                                    <div class="stat-value">
+                                        {{ resultado_estado.anio_censo }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3 class="mt-6 mb-2 font-semibold">
+                                Gráfico de población por estado
+                            </h3>
+                            <div class="bg-base-200 rounded-box p-4">
+                                <canvas id="graficoEstado" class="w-full h-48"></canvas>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- CARD: Consulta por Municipio y Rango de Edad -->
+            <section>
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title">Consulta por municipio y rango de edad</h2>
+                        <p class="text-sm opacity-80">
+                            Selecciona estado, municipio y rango de edad para ver una tabla de distribución.
+                        </p>
+
+                        <form method="post" class="space-y-4">
+                            <input type="hidden" name="tipo_consulta" value="municipio" />
+
+                            <div class="form-control">
+                                <label for="estado2" class="label">
+                                    <span class="label-text">Estado</span>
+                                </label>
+                                <select name="estado" id="estado2" class="select select-bordered w-full">
+                                    {% for est in lista_estados %}
+                                        <option value="{{ est }}">{{ est }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-control">
+                                <label for="municipio" class="label">
+                                    <span class="label-text">Municipio</span>
+                                </label>
+                                <select name="municipio" id="municipio" class="select select-bordered w-full">
+                                    <!-- Se llena dinámicamente con JS -->
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-control">
+                                    <label for="edad_min" class="label">
+                                        <span class="label-text">Edad mínima</span>
+                                    </label>
+                                    <input type="number" name="edad_min" id="edad_min"
+                                           value="18" class="input input-bordered w-full" />
+                                </div>
+                                <div class="form-control">
+                                    <label for="edad_max" class="label">
+                                        <span class="label-text">Edad máxima</span>
+                                    </label>
+                                    <input type="number" name="edad_max" id="edad_max"
+                                           value="35" class="input input-bordered w-full" />
+                                </div>
+                            </div>
+
+                            <div class="form-control mt-4">
+                                <button type="submit" class="btn btn-secondary w-full">
+                                    Consultar población filtrada
+                                </button>
+                            </div>
+                        </form>
+
+                        {% if resultado_municipio %}
+                            <div class="divider my-4">Resultados</div>
+
+                            <div class="alert alert-info mb-4">
+                                <span>
+                                    Estado: <strong>{{ resultado_municipio.estado }}</strong> ·
+                                    Municipio: <strong>{{ resultado_municipio.municipio }}</strong> ·
+                                    Rango: <strong>{{ resultado_municipio.rango_edad[0] }}–{{ resultado_municipio.rango_edad[1] }}</strong> años
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="table table-zebra">
+                                    <thead>
+                                        <tr>
+                                            <th>Edad</th>
+                                            <th>Personas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for fila in resultado_municipio.tabla %}
+                                            <tr>
+                                                <td>{{ fila.edad }}</td>
+                                                <td>{{ fila.personas }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer footer-center bg-base-100 text-base-content p-4 border-t">
+        <aside>
+            <p class="text-xs">
+                Prototipo 6 · Interfaz BDD + Flask + DaisyUI · Censo de México
+            </p>
+        </aside>
+    </footer>
+</div>
+
+<!-- === SCRIPTS === -->
+
+<!-- JS para cargar municipios dinámicamente -->
+<script>
+    // Función para cargar municipios cuando cambia el estado (segunda sección)
+    async function cargarMunicipios() {
+        const selectEstado = document.getElementById('estado2');
+        const selectMunicipio = document.getElementById('municipio');
+
+        if (!selectEstado || !selectMunicipio) {
+            return;
+        }
+
+        const estadoSeleccionado = selectEstado.value;
+        if (!estadoSeleccionado) {
+            selectMunicipio.innerHTML = '';
+            return;
+        }
+
+        try {
+            const respuesta = await fetch(`/municipios?estado=${encodeURIComponent(estadoSeleccionado)}`);
+            const municipios = await respuesta.json();
+
+            // Limpiar opciones actuales
+            selectMunicipio.innerHTML = '';
+
+            // Agregar nuevas opciones
+            municipios.forEach(mun => {
+                const option = document.createElement('option');
+                option.value = mun;
+                option.textContent = mun;
+                selectMunicipio.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error al cargar municipios:', error);
+        }
+    }
+
+    // Asignar evento al cambio de estado2
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectEstado2 = document.getElementById('estado2');
+        if (selectEstado2) {
+            // Cargar municipios al inicio
+            cargarMunicipios();
+
+            // Cargar municipios cada vez que cambie el estado
+            selectEstado2.addEventListener('change', cargarMunicipios);
+        }
+    });
+</script>
+
+<!-- JS del gráfico de barras -->
+{% if datos_grafico %}
+<script>
+    const datosGrafico = {{ datos_grafico | tojson }};
+    const canvas = document.getElementById('graficoEstado');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+
+        const etiquetas = datosGrafico.datos.map(d => d.estado);
+        const valores = datosGrafico.datos.map(d => d.poblacion);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: etiquetas,
+                datasets: [{
+                    label: 'Población total',
+                    data: valores
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endif %}
+
+</body>
+</html>
