@@ -1,1 +1,1 @@
-Repositorio del proyecte Consta de població. 
+Repositorio del proyecto consulta de población.
