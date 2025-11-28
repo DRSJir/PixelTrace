@@ -3,118 +3,135 @@
 <head>
     <meta charset="utf-8"/>
     <title>PixelTrace</title>
-
+    
     <!-- daisyUI CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet"/>
+
+    <!-- OpenStreetMaps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
 </head>
 
 <body class="min-h-screen bg-base-200">
-<div class="min-h-screen flex">
-    <!-- PANEL IZQUIERDO -->
-    <aside class="w-full max-w-sm bg-base-100 border-r border-base-300 px-10 py-10 flex flex-col gap-6">
-        <!-- Título -->
-        <header>
-            <h1 class="text-3xl font-semibold tracking-wide mb-6">
-                PixelTrace
-            </h1>
-
-            <!-- Línea de modelo / focal / apertura (usamos Jinja) -->
-            <p class="text-sm text-base-content/70">
-                {% if exif %}
+    <div class="min-h-screen flex">
+        <!-- PANEL IZQUIERDO -->
+        <aside class="w-full max-w-sm bg-base-100 border-r border-base-300 px-10 py-10 flex flex-col gap-6">
+            <!-- Título -->
+            <header class="flex flex-col items-center text-center">
+                <h1 class="text-3xl font-semibold tracking-wide mb-6">
+                    PixelTrace
+                </h1>
+                
+                <!-- Línea de modelo / focal / apertura (usamos Jinja) -->
+                <p class="text-sm text-base-content/70">
+                    {% if exif %}
                     {{ exif.cameraModel or 'Modelo desconocido' }} ·
                     {{ exif.focalLength_mm or '?' }}mm
                     f/{{ exif.aperture_fNumber or '?' }}
-                {% else %}
-                    &lt;Modelo&gt; · &lt;longitud focal&gt; &lt;apertura&gt;
-                {% endif %}
-            </p>
-        </header>
-
-        <!-- Stats (velocidad, apertura, ISO, EV) -->
-        <section class="mt-2">
-            <div class="grid grid-cols-4 gap-4 text-xs">
-                <div class="flex flex-col items-center gap-1">
-              <span class="font-semibold">
-                {% if exif and exif.exposureTime %}
-                    {{ exif.exposureTime[0] }}/{{ exif.exposureTime[1] }}
-                {% else %}
-                    -
-                {% endif %}
-              </span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">s</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-              <span class="font-semibold">
-                {% if exif and exif.aperture_fNumber %}
-                    {{ "%.2f"|format(exif.aperture_fNumber) }}
-                {% else %}
-                    -
-                {% endif %}
-              </span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">f</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-              <span class="font-semibold">
-                {% if exif and exif.iso %}
-                    {{ exif.iso }}
-                {% else %}
-                    -
-                {% endif %}
-              </span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">ISO</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-              <span class="font-semibold">
-                {% if exif and exif.exposureComp_ev is not none %}
-                    {{ "%.1f"|format(exif.exposureComp_ev) }}
-                {% else %}
-                    -
-                {% endif %}
-              </span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">EV</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Mapa / Ubicación -->
-        <section class="mt-2">
-            <p class="text-xs font-semibold mb-1">Ubicación</p>
-
-            <div class="card bg-base-200 rounded-lg overflow-hidden shadow-sm">
-                <div class="h-40 bg-[url('https://tile.openstreetmap.org/5/15/10.png')] bg-cover bg-center relative">
-                    {% if exif and exif.gps %}
-                        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full">
-                            <div class="tooltip tooltip-open" data-tip="Lat: {{ exif.gps.lat }}, Lng: {{ exif.gps.lng }}">
-                  <span class="btn btn-xs btn-error rounded-full p-0 w-5 h-5"></span>
-                            </div>
-                        </div>
+                    {% else %}
+                    Ver y editar metadatos
                     {% endif %}
+                </p>
+            </header>
+            
+            <!-- Stats (velocidad, apertura, ISO, EV) -->
+            <section class="mt-2">
+                <div class="grid grid-cols-4 gap-4 text-xs">
+                    
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="font-semibold">
+                            {% if exif and exif.exposureTime %}
+                            {# construimos el texto "1/1250" y luego lo recortamos a 4 chars #}
+                            {% set exp = (exif.exposureTime[0] | string) ~ '/' ~ (exif.exposureTime[1] | string) %}
+                            {{ exp | truncate(4, True, '') }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </span>
+                        <span class="text-[0.65rem] uppercase tracking-wide">s</span>
+                    </div>
+                    
+                    
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="font-semibold">
+                            {% if exif and exif.aperture_fNumber %}
+                            {{ "%.2f"|format(exif.aperture_fNumber) }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </span>
+                        <span class="text-[0.65rem] uppercase tracking-wide">f</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="font-semibold">
+                            {% if exif and exif.iso %}
+                            {{ exif.iso }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </span>
+                        <span class="text-[0.65rem] uppercase tracking-wide">ISO</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="font-semibold">
+                            {% if exif and exif.exposureComp_ev is not none %}
+                            {{ "%.1f"|format(exif.exposureComp_ev) }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </span>
+                        <span class="text-[0.65rem] uppercase tracking-wide">EV</span>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+            
+            <!-- Mapa / Ubicación -->
+            <section class="mt-2">
+            <p class="text-xs font-semibold mb-1 text-center">Ubicación</p>
 
-        <!-- Detalles de la imagen -->
-        <section class="mt-2">
-            <div class="flex justify-between items-center text-xs mb-4">
-            <span>
-              {% if exif %}
-                  <!-- Aquí podrías poner resolución y tamaño si los calculas en el backend -->
-                  Datos EXIF encontrados
-              {% else %}
-                  --- · H x W · MB
-              {% endif %}
-            </span>
-                <span class="uppercase">
-              {% if exif %}
-                  JPG
-              {% else %}
-                  ---
-              {% endif %}
-            </span>
-            </div>
+            {% if exif and exif.gps %}
+                <div class="card bg-base-200 rounded-lg overflow-hidden shadow-sm">
+                <div
+                    id="map"
+                    class="h-40 w-full"
+                    data-lat="{{ exif.gps.lat }}"
+                    data-lng="{{ exif.gps.lng }}"
+                ></div>
+                </div>
+                <p class="text-[0.7rem] mt-1 text-center text-base-content/70">Lat: {{ exif.gps.lat }}, Lng: {{ exif.gps.lng }}</p>
+            {% else %}
+                <div class="card bg-base-200 rounded-lg overflow-hidden shadow-sm">
+                <div class="h-40 w-full flex items-center justify-center text-xs text-base-content/60">
+                    Sin datos de ubicación en los metadatos EXIF.
+                </div>
+                </div>
+            {% endif %}
+            </section>
 
-            {% if exif %}
+            
+            <!-- Detalles de la imagen -->
+            <section class="mt-2">
+                <div class="flex justify-between items-center text-xs mb-4">
+                    <span>
+                        {% if exif %}
+                        <!-- Aquí podrías poner resolución y tamaño si los calculas en el backend -->
+                        Datos EXIF encontrados
+                        {% else %}
+                        --- · H x W · MB
+                        {% endif %}
+                    </span>
+                    <span class="uppercase">
+                        {% if exif %}
+                        JPG
+                        {% else %}
+                        ---
+                        {% endif %}
+                    </span>
+                </div>
+                
+                {% if exif %}
                 <!-- Lista real de metadatos -->
                 <ul class="flex flex-col gap-2 text-xs">
                     <li><span class="font-semibold">Marca:</span> {{ exif.cameraMake }}</li>
@@ -124,15 +141,15 @@
                         {{ exif.datetimeOriginal or 'N/D' }}
                     </li>
                     {% if exif.gps %}
-                        <li>
-                            <span class="font-semibold">Latitud:</span> {{ exif.gps.lat }}
-                        </li>
-                        <li>
-                            <span class="font-semibold">Longitud:</span> {{ exif.gps.lng }}
-                        </li>
+                    <li>
+                        <span class="font-semibold">Latitud:</span> {{ exif.gps.lat }}
+                    </li>
+                    <li>
+                        <span class="font-semibold">Longitud:</span> {{ exif.gps.lng }}
+                    </li>
                     {% endif %}
                 </ul>
-            {% else %}
+                {% else %}
                 <!-- Skeletons cuando aún no hay datos -->
                 <div class="flex flex-col gap-3">
                     <div class="skeleton h-3 w-full"></div>
@@ -141,39 +158,64 @@
                     <div class="skeleton h-3 w-3/4"></div>
                     <div class="skeleton h-3 w-2/3"></div>
                 </div>
-            {% endif %}
-        </section>
-    </aside>
-
-    <!-- PANEL DERECHO: FORMULARIO + PREVIEW -->
-    <main class="flex-1 bg-base-300">
-        <div class="w-full h-full flex flex-col items-center justify-center gap-6">
-
-            <!-- Mensaje de error, si existe -->
-            {% if error %}
+                {% endif %}
+            </section>
+        </aside>
+        
+        <!-- PANEL DERECHO: FORMULARIO + PREVIEW -->
+        <main class="flex-1 bg-base-300">
+            <div class="w-full h-full flex flex-col items-center justify-center gap-6">
+                
+                <!-- Mensaje de error, si existe -->
+                {% if error %}
                 <div class="alert alert-error w-10/12 max-w-2xl">
                     <span>{{ error }}</span>
                 </div>
-            {% endif %}
-
-            <!-- Formulario para subir imagen -->
-            <form method="POST" enctype="multipart/form-data" class="flex flex-col items-center gap-4">
-                <input type="file" name="image" accept="image/*" class="file-input file-input-bordered w-full max-w-xs"/>
-                <button class="btn btn-primary" type="submit">
-                    Analizar imagen
-                </button>
-            </form>
-
-            <!-- Área de vista previa -->
-            <div class="aspect-video w-10/12 max-w-5xl bg-base-100 shadow-inner flex items-center justify-center border border-base-300">
-                {% if image_data_url %}
-                    <img src="{{ image_data_url }}" alt="Vista previa de la imagen" class="max-h-full max-w-full object-contain"/>
-                {% else %}
-                    <span class="text-sm text-base-content/60">Sube una imagen para analizar sus metadatos EXIF.</span>
                 {% endif %}
+                
+                <!-- Formulario para subir imagen -->
+                <form method="POST" enctype="multipart/form-data" class="flex flex-col items-center gap-4">
+                    <input type="file" name="image" accept="image/*" class="file-input file-input-bordered w-full max-w-xs"/>
+                    <button class="btn btn-primary" type="submit">
+                        Analizar imagen
+                    </button>
+                </form>
+                
+                <!-- Área de vista previa -->
+                <div class="aspect-video w-10/12 max-w-5xl bg-base-100 shadow-inner flex items-center justify-center border border-base-300">
+                    {% if image_data_url %}
+                    <img src="{{ image_data_url }}" alt="Vista previa de la imagen" class="max-h-full max-w-full object-contain"/>
+                    {% else %}
+                    <span class="text-sm text-base-content/60">Sube una imagen para analizar sus metadatos EXIF.</span>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-    </main>
-</div>
+        </main>
+    </div>
 </body>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const mapEl = document.getElementById("map");
+    if (!mapEl) return;
+
+    const lat = parseFloat(mapEl.dataset.lat);
+    const lng = parseFloat(mapEl.dataset.lng);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    // Crear mapa centrado en la ubicación real
+    const map = L.map(mapEl).setView([lat, lng], 15);
+
+    // Capa de OpenStreetMap
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    // Marcador en la posición EXIF
+    L.marker([lat, lng]).addTo(map);
+  });
+</script>
+
 </html>
