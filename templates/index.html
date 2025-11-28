@@ -1,105 +1,207 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <title>Title</title>
-</head>
-<body class="min-h-screen bg-base-200">
-<div class="min-h-screen flex">
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>PixelTrace</title>
 
-    <!-- PANEL IZQUIERDO -->
-    <aside class="w-full max-w-sm bg-base-100 border-r border-base-300 px-10 py-10 flex flex-col gap-6">
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- daisyUI CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="min-h-screen bg-base-200">
+    <div class="min-h-screen flex">
+      <!-- PANEL IZQUIERDO -->
+      <aside
+        class="w-full max-w-sm bg-base-100 border-r border-base-300 px-10 py-10 flex flex-col gap-6"
+      >
         <!-- Título -->
         <header>
-            <h1 class="text-3xl font-semibold tracking-wide mb-6">
-                PixelTrace
-            </h1>
+          <h1 class="text-3xl font-semibold tracking-wide mb-6">
+            PixelTrace
+          </h1>
 
-            <!-- Línea de modelo / focal / apertura -->
-            <p class="text-sm text-base-content/70">
-                &lt;Modelo&gt; · &lt;longitud focal&gt; &lt;apertura&gt;
-            </p>
+          <!-- Línea de modelo / focal / apertura (usamos Jinja) -->
+          <p class="text-sm text-base-content/70">
+            {% if exif %}
+              {{ exif.cameraModel or 'Modelo desconocido' }} ·
+              {{ exif.focalLength_mm or '?' }}mm
+              f/{{ exif.aperture_fNumber or '?' }}
+            {% else %}
+              &lt;Modelo&gt; · &lt;longitud focal&gt; &lt;apertura&gt;
+            {% endif %}
+          </p>
         </header>
 
         <!-- Stats (velocidad, apertura, ISO, EV) -->
         <section class="mt-2">
-            <div class="grid grid-cols-4 gap-4 text-xs">
-                <div class="flex flex-col items-center gap-1">
-                    <span class="font-semibold">1/1250</span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">s</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-                    <span class="font-semibold">1.78</span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">f</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-                    <span class="font-semibold">800</span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">ISO</span>
-                </div>
-                <div class="flex flex-col items-center gap-1">
-                    <span class="font-semibold">-0.3</span>
-                    <span class="text-[0.65rem] uppercase tracking-wide">EV</span>
-                </div>
+          <div class="grid grid-cols-4 gap-4 text-xs">
+            <div class="flex flex-col items-center gap-1">
+              <span class="font-semibold">
+                {% if exif and exif.exposureTime %}
+                  {{ exif.exposureTime[0] }}/{{ exif.exposureTime[1] }}
+                {% else %}
+                  1/1250
+                {% endif %}
+              </span>
+              <span class="text-[0.65rem] uppercase tracking-wide">s</span>
             </div>
+            <div class="flex flex-col items-center gap-1">
+              <span class="font-semibold">
+                {% if exif and exif.aperture_fNumber %}
+                  {{ "%.2f"|format(exif.aperture_fNumber) }}
+                {% else %}
+                  1.78
+                {% endif %}
+              </span>
+              <span class="text-[0.65rem] uppercase tracking-wide">f</span>
+            </div>
+            <div class="flex flex-col items-center gap-1">
+              <span class="font-semibold">
+                {% if exif and exif.iso %}
+                  {{ exif.iso }}
+                {% else %}
+                  800
+                {% endif %}
+              </span>
+              <span class="text-[0.65rem] uppercase tracking-wide">ISO</span>
+            </div>
+            <div class="flex flex-col items-center gap-1">
+              <span class="font-semibold">
+                {% if exif and exif.exposureComp_ev is not none %}
+                  {{ "%.1f"|format(exif.exposureComp_ev) }}
+                {% else %}
+                  -0.3
+                {% endif %}
+              </span>
+              <span class="text-[0.65rem] uppercase tracking-wide">EV</span>
+            </div>
+          </div>
         </section>
 
         <!-- Mapa / Ubicación -->
         <section class="mt-2">
-            <p class="text-xs font-semibold mb-1">Ubicación</p>
+          <p class="text-xs font-semibold mb-1">Ubicación</p>
 
-            <div class="card bg-base-200 rounded-lg overflow-hidden shadow-sm">
+          <div class="card bg-base-200 rounded-lg overflow-hidden shadow-sm">
+            <div
+              class="h-40 bg-[url('https://tile.openstreetmap.org/5/15/10.png')] bg-cover bg-center relative"
+            >
+              {% if exif and exif.gps %}
+              <div
+                class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full"
+              >
                 <div
-                        class="h-40 bg-[url('https://tile.openstreetmap.org/5/15/10.png')] bg-cover bg-center relative"
+                  class="tooltip tooltip-open"
+                  data-tip="Lat: {{ exif.gps.lat }}, Lng: {{ exif.gps.lng }}"
                 >
-                    <!-- Pin simulado -->
-                    <div
-                            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full"
-                    >
-                        <div class="tooltip tooltip-open" data-tip="Lat, Lon">
-                <span
-                        class="btn btn-xs btn-error rounded-full p-0 w-5 h-5"
-                ></span>
-                        </div>
-                    </div>
+                  <span
+                    class="btn btn-xs btn-error rounded-full p-0 w-5 h-5"
+                  ></span>
                 </div>
+              </div>
+              {% endif %}
             </div>
+          </div>
         </section>
 
         <!-- Detalles de la imagen -->
         <section class="mt-2">
-            <div class="flex justify-between items-center text-xs mb-4">
-                <span>12 · 4080 x 3072 · 4MB</span>
-                <span class="uppercase">JPG</span>
-            </div>
+          <div class="flex justify-between items-center text-xs mb-4">
+            <span>
+              {% if exif %}
+                <!-- Aquí podrías poner resolución y tamaño si los calculas en el backend -->
+                Datos EXIF encontrados
+              {% else %}
+                12 · 4080 x 3072 · 4MB
+              {% endif %}
+            </span>
+            <span class="uppercase">
+              {% if exif %}
+                JPG
+              {% else %}
+                JPG
+              {% endif %}
+            </span>
+          </div>
 
-            <!-- Lista de metadatos (skeletons del mockup) -->
-            <div class="flex flex-col gap-3">
-                <div class="skeleton h-3 w-full"></div>
-                <div class="skeleton h-3 w-5/6"></div>
-                <div class="skeleton h-3 w-4/5"></div>
-                <div class="skeleton h-3 w-3/4"></div>
-                <div class="skeleton h-3 w-2/3"></div>
-            </div>
+          {% if exif %}
+          <!-- Lista real de metadatos -->
+          <ul class="flex flex-col gap-2 text-xs">
+            <li><span class="font-semibold">Marca:</span> {{ exif.cameraMake }}</li>
+            <li><span class="font-semibold">Modelo:</span> {{ exif.cameraModel }}</li>
+            <li>
+              <span class="font-semibold">Fecha:</span>
+              {{ exif.datetimeOriginal or 'N/D' }}
+            </li>
+            {% if exif.gps %}
+            <li>
+              <span class="font-semibold">Latitud:</span> {{ exif.gps.lat }}
+            </li>
+            <li>
+              <span class="font-semibold">Longitud:</span> {{ exif.gps.lng }}
+            </li>
+            {% endif %}
+          </ul>
+          {% else %}
+          <!-- Skeletons cuando aún no hay datos -->
+          <div class="flex flex-col gap-3">
+            <div class="skeleton h-3 w-full"></div>
+            <div class="skeleton h-3 w-5/6"></div>
+            <div class="skeleton h-3 w-4/5"></div>
+            <div class="skeleton h-3 w-3/4"></div>
+            <div class="skeleton h-3 w-2/3"></div>
+          </div>
+          {% endif %}
         </section>
-    </aside>
+      </aside>
 
-    <!-- PANEL DERECHO: PREVIEW DE IMAGEN -->
-    <main class="flex-1 bg-base-300">
-        <div class="w-full h-full flex items-center justify-center">
-            <!-- Aquí va la imagen cargada -->
-            <div
-                    class="aspect-video w-10/12 max-w-5xl bg-base-100 shadow-inner flex items-center justify-center border border-base-300"
-            >
-          <span class="text-sm text-base-content/60">
-            Vista previa de la imagen
-          </span>
-            </div>
+      <!-- PANEL DERECHO: FORMULARIO + PREVIEW -->
+      <main class="flex-1 bg-base-300">
+        <div class="w-full h-full flex flex-col items-center justify-center gap-6">
+
+          <!-- Mensaje de error, si existe -->
+          {% if error %}
+          <div class="alert alert-error w-10/12 max-w-2xl">
+            <span>{{ error }}</span>
+          </div>
+          {% endif %}
+
+          <!-- Formulario para subir imagen -->
+          <form
+            method="POST"
+            enctype="multipart/form-data"
+            class="flex flex-col items-center gap-4"
+          >
+            <input
+              type="file"
+              name="image"
+              accept="image/*"
+              class="file-input file-input-bordered w-full max-w-xs"
+            />
+            <button class="btn btn-primary" type="submit">
+              Analizar imagen
+            </button>
+          </form>
+
+          <!-- Área de vista previa (por ahora solo texto) -->
+          <div
+            class="aspect-video w-10/12 max-w-5xl bg-base-100 shadow-inner flex items-center justify-center border border-base-300"
+          >
+            <span class="text-sm text-base-content/60">
+              {% if exif %}
+                Metadatos cargados correctamente. (Aquí luego puedes mostrar la imagen.)
+              {% else %}
+                Sube una imagen para analizar sus metadatos EXIF.
+              {% endif %}
+            </span>
+          </div>
         </div>
-    </main>
-</div>
-</body>
-
-
+      </main>
+    </div>
+  </body>
 </html>
